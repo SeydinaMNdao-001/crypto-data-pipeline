@@ -6,6 +6,7 @@ les fichiers déjà présents — c'est un append-only, pas une mise à jour.
 """
 import logging
 from datetime import datetime
+import uuid
 
 import pandas as pd
 import pyarrow as pa
@@ -55,6 +56,7 @@ def write_snapshot_to_parquet(records: list, fx_rate: float = None, base_path: s
         partitioning=["year", "month", "day"],
         partitioning_flavor="hive",
         existing_data_behavior="overwrite_or_ignore",
+        basename_template=f"part-{uuid.uuid4().hex}-{{i}}.parquet",
     )
 
     logger.info("Écrit %d lignes dans l'archive Parquet (%s)", len(rows), base_path)
