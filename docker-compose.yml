@@ -79,6 +79,7 @@ x-airflow-common:
     # The following line can be used to set a custom config file, stored in the local config folder
     AIRFLOW_CONFIG: '/opt/airflow/config/airflow.cfg'
     PYTHONPATH: '/opt/airflow'
+    POSTGRES_HOST: postgres-app
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
@@ -91,6 +92,8 @@ x-airflow-common:
     redis:
       condition: service_healthy
     postgres:
+      condition: service_healthy
+    postgres-app:
       condition: service_healthy
 
 services:

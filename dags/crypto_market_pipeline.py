@@ -58,22 +58,27 @@ def crypto_market_pipeline():
             raise
 
     @task()
-    def summarize(coingecko_data: list, binance_data: list, fx_data: dict) -> None:
+    def load_to_postgres(coingecko_data: list, binance_data: list, fx_data: dict) -> None:
         """
-        Étape temporaire : le stockage réel (PostgreSQL/Parquet) arrive en
-        phase 4 (section 9). Pour l'instant, on journalise un résumé du cycle.
+        Écrit les deux sources dans crypto_market_snapshot, avec conversion
+        XOF appliquée au passage (section 9).
         """
-        total = len(coingecko_data) + len(binance_data)
+        from src.utils.db import insert_snapshot_records
+
+        fx_rate = fx_data["usd_xof_rate"]
+        n_coingecko = insert_snapshot_records(coingecko_data, fx_rate=fx_rate)
+        n_binance = insert_snapshot_records(binance_data, fx_rate=fx_rate)
+
         logger.info(
-            "Cycle terminé : %d lignes CoinGecko, %d lignes Binance, taux USD/XOF=%.2f. Total: %d",
-            len(coingecko_data), len(binance_data), fx_data["usd_xof_rate"], total,
+            "Chargement terminé : %d lignes CoinGecko + %d lignes Binance = %d total",
+            n_coingecko, n_binance, n_coingecko + n_binance,
         )
 
     coingecko_result = collect_coingecko()
     binance_result = collect_binance()
     fx_result = collect_fx()
 
-    summarize(coingecko_result, binance_result, fx_result)
+    load_to_postgres(coingecko_result, binance_result, fx_result)
 
 
 crypto_market_pipeline()
