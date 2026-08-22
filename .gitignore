@@ -1,0 +1,21 @@
+# Environnement Python
+venv/
+__pycache__/
+*.pyc
+.env
+
+# Data
+data/*.parquet
+data/*.csv
+!data/.gitkeep
+
+# Docker
+docker/volumes/
+
+# IDE
+.vscode/
+.DS_Store
+
+# Airflow
+airflow/logs/
+airflow/airflow.db
