@@ -4,3 +4,5 @@ tenacity
 psycopg2-binary
 pandas
 pyarrow
+fastapi
+uvicorn[standard]

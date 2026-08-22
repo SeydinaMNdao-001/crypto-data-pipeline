@@ -1,0 +1,33 @@
+"""
+Schémas de réponse de l'API — définissent le contrat de données exposé.
+"""
+from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel
+
+
+class CryptoInfo(BaseModel):
+    symbol: str
+    asset_id: str
+    category: str
+
+
+class CryptoSnapshot(BaseModel):
+    asset_id: str
+    symbol: str
+    timestamp: datetime
+    ingestion_time: datetime
+    price_usd: float
+    price_xof: Optional[float] = None
+    volume_24h: Optional[float] = None
+    market_cap: Optional[float] = None
+    change_24h: Optional[float] = None
+    source: str
+
+
+class MarketSummary(BaseModel):
+    total_assets: int
+    total_market_cap_usd: float
+    average_change_24h: float
+    last_updated: datetime

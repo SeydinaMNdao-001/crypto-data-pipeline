@@ -63,3 +63,62 @@ def insert_snapshot_records(records: list, fx_rate: float = None) -> int:
 
     logger.info("Inséré %d lignes dans crypto_market_snapshot", len(rows))
     return len(rows)
+
+
+def get_latest_by_symbol(symbol: str, source: str = "coingecko"):
+    """Dernier enregistrement connu pour un actif (source canonique : CoinGecko)."""
+    query = """
+        SELECT asset_id, symbol, timestamp, ingestion_time, price_usd, price_xof,
+               volume_24h, market_cap, change_24h, source
+        FROM crypto_market_snapshot
+        WHERE symbol = %s AND source = %s
+        ORDER BY ingestion_time DESC
+        LIMIT 1
+    """
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, (symbol, source))
+            row = cur.fetchone()
+            if row is None:
+                return None
+            columns = [desc[0] for desc in cur.description]
+            return dict(zip(columns, row))
+
+
+def get_history_by_symbol(symbol: str, hours: int, source: str = "coingecko"):
+    """Historique d'un actif sur les N dernières heures."""
+    query = """
+        SELECT asset_id, symbol, timestamp, ingestion_time, price_usd, price_xof,
+               volume_24h, market_cap, change_24h, source
+        FROM crypto_market_snapshot
+        WHERE symbol = %s AND source = %s
+          AND ingestion_time >= NOW() - (%s || ' hours')::INTERVAL
+        ORDER BY ingestion_time ASC
+    """
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, (symbol, source, hours))
+            rows = cur.fetchall()
+            columns = [desc[0] for desc in cur.description]
+            return [dict(zip(columns, r)) for r in rows]
+
+
+def get_market_summary(source: str = "coingecko"):
+    """Synthèse du marché à l'instant du dernier cycle de collecte."""
+    query = """
+        SELECT COUNT(DISTINCT symbol) AS total_assets,
+               SUM(market_cap) AS total_market_cap_usd,
+               AVG(change_24h) AS average_change_24h,
+               MAX(ingestion_time) AS last_updated
+        FROM crypto_market_snapshot
+        WHERE source = %s
+          AND ingestion_time = (
+              SELECT MAX(ingestion_time) FROM crypto_market_snapshot WHERE source = %s
+          )
+    """
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, (source, source))
+            row = cur.fetchone()
+            columns = [desc[0] for desc in cur.description]
+            return dict(zip(columns, row))
