@@ -73,12 +73,23 @@ def crypto_market_pipeline():
             "Chargement terminé : %d lignes CoinGecko + %d lignes Binance = %d total",
             n_coingecko, n_binance, n_coingecko + n_binance,
         )
+        
+    @task()
+    def archive_to_parquet(coingecko_data: list, binance_data: list, fx_data: dict) -> None:
+        """Archive les deux sources en Parquet partitionné (section 8)."""
+        from src.utils.parquet_writer import write_snapshot_to_parquet
+
+        fx_rate = fx_data["usd_xof_rate"]
+        n_coingecko = write_snapshot_to_parquet(coingecko_data, fx_rate=fx_rate)
+        n_binance = write_snapshot_to_parquet(binance_data, fx_rate=fx_rate)
+        logger.info("Archive Parquet : %d + %d lignes", n_coingecko, n_binance)
 
     coingecko_result = collect_coingecko()
     binance_result = collect_binance()
     fx_result = collect_fx()
 
     load_to_postgres(coingecko_result, binance_result, fx_result)
+    archive_to_parquet(coingecko_result, binance_result, fx_result)
 
 
 crypto_market_pipeline()

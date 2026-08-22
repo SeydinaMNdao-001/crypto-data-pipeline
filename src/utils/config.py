@@ -8,18 +8,18 @@ from dotenv import load_dotenv
 load_dotenv()
 
 ASSETS = [
-    {"symbol": "BTC",  "coingecko_id": "bitcoin",     "category": "reference"},
-    {"symbol": "ETH",  "coingecko_id": "ethereum",    "category": "reference"},
-    {"symbol": "USDT", "coingecko_id": "tether",      "category": "stablecoin"},
-    {"symbol": "USDC", "coingecko_id": "usd-coin",    "category": "stablecoin"},
-    {"symbol": "DAI",  "coingecko_id": "dai",         "category": "stablecoin"},
-    {"symbol": "TRX",  "coingecko_id": "tron",        "category": "circulation"},
-    {"symbol": "BNB",  "coingecko_id": "binancecoin", "category": "large_cap"},
-    {"symbol": "SOL",  "coingecko_id": "solana",      "category": "large_cap"},
-    {"symbol": "XRP",  "coingecko_id": "ripple",      "category": "large_cap"},
-    {"symbol": "ADA",  "coingecko_id": "cardano",     "category": "large_cap"},
-    {"symbol": "DOGE", "coingecko_id": "dogecoin",    "category": "speculative"},
-    {"symbol": "LTC",  "coingecko_id": "litecoin",    "category": "legacy"},
+    {"symbol": "BTC",  "coingecko_id": "bitcoin",     "binance_pair": "BTCUSDT",  "category": "reference"},
+    {"symbol": "ETH",  "coingecko_id": "ethereum",    "binance_pair": "ETHUSDT",  "category": "reference"},
+    {"symbol": "USDT", "coingecko_id": "tether",      "binance_pair": None,       "category": "stablecoin"},
+    {"symbol": "USDC", "coingecko_id": "usd-coin",    "binance_pair": "USDCUSDT", "category": "stablecoin"},
+    {"symbol": "DAI",  "coingecko_id": "dai",         "binance_pair": "DAIUSDT",  "category": "stablecoin"},
+    {"symbol": "TRX",  "coingecko_id": "tron",        "binance_pair": "TRXUSDT",  "category": "circulation"},
+    {"symbol": "BNB",  "coingecko_id": "binancecoin", "binance_pair": "BNBUSDT",  "category": "large_cap"},
+    {"symbol": "SOL",  "coingecko_id": "solana",      "binance_pair": "SOLUSDT",  "category": "large_cap"},
+    {"symbol": "XRP",  "coingecko_id": "ripple",      "binance_pair": "XRPUSDT",  "category": "large_cap"},
+    {"symbol": "ADA",  "coingecko_id": "cardano",     "binance_pair": "ADAUSDT",  "category": "large_cap"},
+    {"symbol": "DOGE", "coingecko_id": "dogecoin",    "binance_pair": "DOGEUSDT", "category": "speculative"},
+    {"symbol": "LTC",  "coingecko_id": "litecoin",    "binance_pair": "LTCUSDT",  "category": "legacy"},
 ]
 
 STABLECOIN_SYMBOLS = ["USDT", "USDC", "DAI"]
@@ -38,3 +38,4 @@ POSTGRES_CONFIG = {
 }
 
 XOF_EUR_FIXED_RATE = float(os.getenv("XOF_EUR_FIXED_RATE", "655.957"))
+PARQUET_BASE_PATH = os.getenv("PARQUET_BASE_PATH", "data/crypto_market_snapshot")
