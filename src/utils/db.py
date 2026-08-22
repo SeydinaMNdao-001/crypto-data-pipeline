@@ -226,3 +226,61 @@ def get_metrics_by_symbol(symbol: str, source: str = "coingecko", lookback_days:
         "rolling_volatility": float(result["rolling_volatility"]) if result["rolling_volatility"] else None,
         "max_drawdown_pct": round(float(result["max_drawdown"]) * 100, 4) if result["max_drawdown"] is not None else None,
     }
+
+
+def get_market_ranking(metric: str = "change_24h", source: str = "coingecko", lookback_days: int = 1):
+    """
+    Classe les 12 actifs selon un indicateur (section 10). Une seule requête
+    calcule les métriques des 12 actifs à la fois, plutôt que 12 appels
+    séparés à get_metrics_by_symbol (évite le problème classique du "N+1").
+    """
+    query = """
+        WITH history AS (
+            SELECT symbol, ingestion_time, price_usd, volume_24h, change_24h,
+                   (price_usd - LAG(price_usd) OVER (PARTITION BY symbol ORDER BY ingestion_time))
+                     / NULLIF(LAG(price_usd) OVER (PARTITION BY symbol ORDER BY ingestion_time), 0) AS pct_return
+            FROM crypto_market_snapshot
+            WHERE source = %s
+              AND ingestion_time >= NOW() - (%s || ' days')::INTERVAL
+        ),
+        latest AS (
+            SELECT DISTINCT ON (symbol) symbol, price_usd, volume_24h, change_24h, ingestion_time
+            FROM history
+            ORDER BY symbol, ingestion_time DESC
+        ),
+        vol AS (
+            SELECT symbol, STDDEV(pct_return) AS rolling_volatility
+            FROM history
+            GROUP BY symbol
+        )
+        SELECT l.symbol, l.price_usd, l.change_24h, l.volume_24h, v.rolling_volatility
+        FROM latest l
+        JOIN vol v USING (symbol)
+    """
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, (source, lookback_days))
+            rows = cur.fetchall()
+            columns = [desc[0] for desc in cur.description]
+            results = [dict(zip(columns, r)) for r in rows]
+
+    metric_map = {"change_24h": "change_24h", "volatility": "rolling_volatility", "volume": "volume_24h"}
+    sort_field = metric_map.get(metric, "change_24h")
+
+    def sort_key(item):
+        value = item[sort_field]
+        return float(value) if value is not None else float("-inf")
+
+    ranked = sorted(results, key=sort_key, reverse=True)
+
+    output = []
+    for i, r in enumerate(ranked, start=1):
+        output.append({
+            "rank": i,
+            "symbol": r["symbol"],
+            "price_usd": float(r["price_usd"]),
+            "change_24h_pct": float(r["change_24h"]) if r["change_24h"] is not None else None,
+            "rolling_volatility": float(r["rolling_volatility"]) if r["rolling_volatility"] is not None else None,
+            "volume_24h": float(r["volume_24h"]) if r["volume_24h"] is not None else None,
+        })
+    return output

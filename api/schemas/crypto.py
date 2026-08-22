@@ -41,3 +41,12 @@ class CryptoMetrics(BaseModel):
     moving_average_7d: Optional[float] = None
     rolling_volatility: Optional[float] = None
     max_drawdown_pct: Optional[float] = None
+
+
+class RankingEntry(BaseModel):
+    rank: int
+    symbol: str
+    price_usd: float
+    change_24h_pct: Optional[float] = None
+    rolling_volatility: Optional[float] = None
+    volume_24h: Optional[float] = None
