@@ -31,3 +31,13 @@ class MarketSummary(BaseModel):
     total_market_cap_usd: float
     average_change_24h: float
     last_updated: datetime
+
+
+class CryptoMetrics(BaseModel):
+    symbol: str
+    price_usd: float
+    change_1h_pct: Optional[float] = None
+    change_24h_pct: Optional[float] = None
+    moving_average_7d: Optional[float] = None
+    rolling_volatility: Optional[float] = None
+    max_drawdown_pct: Optional[float] = None
