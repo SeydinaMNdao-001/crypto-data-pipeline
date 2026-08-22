@@ -19,3 +19,7 @@ docker/volumes/
 # Airflow
 airflow/logs/
 airflow/airflow.db
+# Airflow (racine du projet)
+logs/
+plugins/
+config/
