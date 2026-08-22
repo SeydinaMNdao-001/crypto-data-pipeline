@@ -64,8 +64,7 @@ def render_market_view():
             y=hist_df["total_market_cap_usd"],
             mode="lines",
             line=dict(color=COLORS["accent_gold"], width=2),
-            fill="tozeroy",
-            fillcolor="rgba(201, 162, 75, 0.08)",
+            
         ))
         fig_evo.update_layout(
             plot_bgcolor=COLORS["bg"],
