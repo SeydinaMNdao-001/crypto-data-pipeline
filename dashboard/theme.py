@@ -49,3 +49,15 @@ def apply_custom_styles():
         }}
         </style>
     """, unsafe_allow_html=True)
+
+# Palette pour comparer plusieurs actifs sur un même graphique — dérivée
+# de la palette principale (variations d'or, indigo, sauge, terracotta)
+# plutôt que des couleurs Plotly par défaut qui casseraient l'identité visuelle.
+CHART_PALETTE = [
+    "#C9A24B",  # or
+    "#5B6EE8",  # indigo
+    "#4F9B72",  # sauge
+    "#C1594A",  # terracotta
+    "#4FA8C9",  # sarcelle
+    "#B87FC9",  # mauve
+]
