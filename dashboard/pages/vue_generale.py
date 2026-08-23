@@ -4,28 +4,12 @@ Rafraîchissement automatique toutes les 30 secondes.
 """
 import pandas as pd
 import streamlit as st
-
+from utils import insert_gap_breaks
 import plotly.graph_objects as go
 
 from api_client import get_cryptos, get_latest, get_market_history, get_market_summary
 from theme import COLORS
 
-
-def _insert_gap_breaks(df, timestamp_col="timestamp", value_col="total_market_cap_usd", gap_threshold_minutes=5):
-    """
-    Insère un point 'trou' (valeur None) quand l'écart entre deux mesures
-    dépasse le seuil — pour que le graphique montre une vraie coupure
-    plutôt qu'une ligne droite trompeuse entre deux points éloignés dans le temps.
-    """
-    df = df.copy()
-    df[timestamp_col] = pd.to_datetime(df[timestamp_col])
-    gaps = df[timestamp_col].diff() > pd.Timedelta(minutes=gap_threshold_minutes)
-    if not gaps.any():
-        return df
-    break_rows = df[gaps].copy()
-    break_rows[timestamp_col] = break_rows[timestamp_col] - pd.Timedelta(seconds=1)
-    break_rows[value_col] = None
-    return pd.concat([df, break_rows]).sort_values(timestamp_col).reset_index(drop=True)
 
 st.title("🌍 Vue générale du marché")
 st.caption("Actualisation automatique toutes les 30 secondes")
@@ -58,7 +42,7 @@ def render_market_view():
         st.info("Historique encore trop court pour une courbe — le pipeline vient tout juste de démarrer.")
     else:
         hist_df = pd.DataFrame(history)
-        hist_df = _insert_gap_breaks(hist_df)
+        hist_df = insert_gap_breaks(hist_df, value_cols=["total_market_cap_usd"])
         fig_evo = go.Figure(go.Scatter(
             x=hist_df["timestamp"],
             y=hist_df["total_market_cap_usd"],

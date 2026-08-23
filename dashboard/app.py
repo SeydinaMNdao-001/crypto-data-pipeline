@@ -4,11 +4,15 @@ Chaque page correspond à une des 6 vues attendues.
 """
 import streamlit as st
 
+from theme import apply_custom_styles
+
 st.set_page_config(
     page_title="Crypto Pipeline MVP — Dakar / UEMOA",
     page_icon="📊",
     layout="wide",
 )
+
+apply_custom_styles()
 
 pages = {
     "Marché": [

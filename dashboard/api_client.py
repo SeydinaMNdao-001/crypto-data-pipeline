@@ -51,3 +51,10 @@ def get_ranking(metric: str = "change_24h", days: int = 1):
     r = requests.get(f"{API_BASE_URL}/market/ranking", params={"metric": metric, "days": days}, timeout=5)
     r.raise_for_status()
     return r.json()
+
+
+@st.cache_data(ttl=30)
+def get_market_history(hours: int = 24):
+    r = requests.get(f"{API_BASE_URL}/market/history", params={"hours": hours}, timeout=5)
+    r.raise_for_status()
+    return r.json()
