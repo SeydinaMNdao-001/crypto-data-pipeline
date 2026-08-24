@@ -7,3 +7,5 @@ pyarrow
 fastapi
 uvicorn[standard]
 streamlit
+plotly
+pytest
