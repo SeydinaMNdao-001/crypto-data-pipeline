@@ -150,7 +150,32 @@ services:
       start_period: 5s
     restart: always
 
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: postgres-app
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres-app:
+        condition: service_healthy
+    restart: always
 
+  dashboard:
+    build:
+      context: .
+      dockerfile: docker/dashboard.Dockerfile
+    environment:
+      API_BASE_URL: http://api:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
+    restart: always
 
   airflow-apiserver:
     <<: *airflow-common
