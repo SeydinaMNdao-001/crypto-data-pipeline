@@ -73,7 +73,7 @@ def crypto_market_pipeline():
             "Chargement terminé : %d lignes CoinGecko + %d lignes Binance = %d total",
             n_coingecko, n_binance, n_coingecko + n_binance,
         )
-        
+
     @task()
     def archive_to_parquet(coingecko_data: list, binance_data: list, fx_data: dict) -> None:
         """Archive les deux sources en Parquet partitionné (section 8)."""
@@ -84,12 +84,31 @@ def crypto_market_pipeline():
         n_binance = write_snapshot_to_parquet(binance_data, fx_rate=fx_rate)
         logger.info("Archive Parquet : %d + %d lignes", n_coingecko, n_binance)
 
+    @task()
+    def track_stablecoin_peg(coingecko_data: list) -> None:
+        """Calcule et historise l'écart de peg des 3 stablecoins (section 11.2)."""
+        from src.transformations.peg_tracker import compute_peg_records
+        from src.utils.db import insert_peg_records
+
+        peg_records = compute_peg_records(coingecko_data)
+        count = insert_peg_records(peg_records)
+        logger.info("Suivi du peg : %d lignes enregistrées", count)
+
+    @task()
+    def track_fx_rate(fx_data: dict) -> None:
+        """Historise le taux de change (section 11.5)."""
+        from src.utils.db import insert_fx_rate
+
+        insert_fx_rate(fx_data)
+
     coingecko_result = collect_coingecko()
     binance_result = collect_binance()
     fx_result = collect_fx()
 
     load_to_postgres(coingecko_result, binance_result, fx_result)
     archive_to_parquet(coingecko_result, binance_result, fx_result)
+    track_stablecoin_peg(coingecko_result)
+    track_fx_rate(fx_result)
 
 
 crypto_market_pipeline()
