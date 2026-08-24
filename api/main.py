@@ -3,7 +3,7 @@ Point d'entrée FastAPI — section 13 du document projet.
 """
 from fastapi import FastAPI
 
-from api.routes import cryptos, health, market
+from api.routes import cryptos, health, market, quality, stablecoins
 
 app = FastAPI(
     title="Crypto Market Pipeline API",
@@ -14,3 +14,5 @@ app = FastAPI(
 app.include_router(health.router, tags=["health"])
 app.include_router(cryptos.router, tags=["cryptos"])
 app.include_router(market.router, tags=["market"])
+app.include_router(stablecoins.router, tags=["stablecoins"])
+app.include_router(quality.router, tags=["quality"])

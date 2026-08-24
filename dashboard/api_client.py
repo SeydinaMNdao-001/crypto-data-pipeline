@@ -58,3 +58,23 @@ def get_market_history(hours: int = 24):
     r = requests.get(f"{API_BASE_URL}/market/history", params={"hours": hours}, timeout=5)
     r.raise_for_status()
     return r.json()
+
+@st.cache_data(ttl=30)
+def get_peg_history(hours: int = 24):
+    r = requests.get(f"{API_BASE_URL}/stablecoins/peg-history", params={"hours": hours}, timeout=5)
+    r.raise_for_status()
+    return r.json()
+
+
+@st.cache_data(ttl=30)
+def get_fx_rate_history(hours: int = 168):
+    r = requests.get(f"{API_BASE_URL}/market/fx-history", params={"hours": hours}, timeout=5)
+    r.raise_for_status()
+    return r.json()
+
+
+@st.cache_data(ttl=30)
+def get_pipeline_quality(hours: int = 24):
+    r = requests.get(f"{API_BASE_URL}/pipeline/quality", params={"hours": hours}, timeout=5)
+    r.raise_for_status()
+    return r.json()

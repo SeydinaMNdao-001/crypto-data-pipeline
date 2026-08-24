@@ -28,3 +28,28 @@ def market_ranking(
     if days <= 0 or days > 90:
         raise HTTPException(status_code=400, detail="Le paramètre 'days' doit être entre 1 et 90")
     return get_market_ranking(metric=metric, lookback_days=days)
+
+
+
+from src.utils.db import get_market_cap_history
+from api.schemas.crypto import MarketHistoryPoint
+
+
+@router.get("/market/history", response_model=list[MarketHistoryPoint])
+def market_history(hours: int = 24):
+    if hours <= 0 or hours > 720:
+        raise HTTPException(status_code=400, detail="Le paramètre 'hours' doit être entre 1 et 720")
+    return get_market_cap_history(hours=hours)
+
+
+
+
+from src.utils.db import get_fx_rate_history
+from api.schemas.crypto import FxRatePoint
+
+
+@router.get("/market/fx-history", response_model=list[FxRatePoint])
+def fx_history(hours: int = 168):
+    if hours <= 0 or hours > 2160:
+        raise HTTPException(status_code=400, detail="Le paramètre 'hours' doit être entre 1 et 2160")
+    return get_fx_rate_history(hours=hours)

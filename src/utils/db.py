@@ -284,3 +284,132 @@ def get_market_ranking(metric: str = "change_24h", source: str = "coingecko", lo
             "volume_24h": float(r["volume_24h"]) if r["volume_24h"] is not None else None,
         })
     return output
+
+
+def get_market_cap_history(source: str = "coingecko", hours: int = 24):
+    """Capitalisation totale du marché à chaque cycle de collecte (section 14)."""
+    query = """
+        SELECT ingestion_time, SUM(market_cap) AS total_market_cap_usd
+        FROM crypto_market_snapshot
+        WHERE source = %s
+          AND ingestion_time >= NOW() - (%s || ' hours')::INTERVAL
+        GROUP BY ingestion_time
+        ORDER BY ingestion_time
+    """
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, (source, hours))
+            rows = cur.fetchall()
+            return [{"timestamp": r[0], "total_market_cap_usd": float(r[1])} for r in rows]
+
+
+def get_peg_history(hours: int = 24):
+    """Historique de l'écart de peg des 3 stablecoins (section 11.2)."""
+    query = """
+        SELECT asset_id, timestamp, price_usd, peg_deviation, seuil_alerte_franchi
+        FROM stablecoin_peg_history
+        WHERE timestamp >= NOW() - (%s || ' hours')::INTERVAL
+        ORDER BY timestamp
+    """
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, (hours,))
+            rows = cur.fetchall()
+            columns = [desc[0] for desc in cur.description]
+            return [dict(zip(columns, r)) for r in rows]
+
+
+INSERT_FX_SQL = """
+    INSERT INTO fx_rate_history
+        (rate_date, ingestion_time, usd_eur_rate, eur_xof_fixed_rate, usd_xof_rate)
+    VALUES (%s, %s, %s, %s, %s)
+"""
+
+
+def insert_fx_rate(record: dict) -> int:
+    """Historise un taux de change (section 11.5 : comparatif de volatilité)."""
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(INSERT_FX_SQL, (
+                record["rate_date"], record["ingestion_time"], record["usd_eur_rate"],
+                record["eur_xof_fixed_rate"], record["usd_xof_rate"],
+            ))
+    logger.info("Taux FX enregistré : %s XOF/USD", record["usd_xof_rate"])
+    return 1
+
+
+def get_fx_rate_history(hours: int = 168):
+    """Historique du taux USD/XOF sur la période demandée."""
+    query = """
+        SELECT ingestion_time, usd_xof_rate
+        FROM fx_rate_history
+        WHERE ingestion_time >= NOW() - (%s || ' hours')::INTERVAL
+        ORDER BY ingestion_time
+    """
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, (hours,))
+            rows = cur.fetchall()
+            return [{"ingestion_time": r[0], "usd_xof_rate": float(r[1])} for r in rows]
+
+
+def get_pipeline_quality(hours: int = 24):
+    """
+    Indicateurs de qualité du pipeline (section 15), dérivés directement
+    des données collectées plutôt que des métadonnées d'Airflow.
+    """
+    from datetime import datetime, timezone
+
+    expected_cycles = hours * 60  # collecte nominale : 1 cycle/minute (section 15)
+
+    query = """
+        SELECT
+            source,
+            COUNT(DISTINCT ingestion_time) AS actual_cycles,
+            MAX(ingestion_time) AS last_ingestion,
+            AVG(EXTRACT(EPOCH FROM (ingestion_time - timestamp))) AS avg_latency_seconds
+        FROM crypto_market_snapshot
+        WHERE ingestion_time >= NOW() - (%s || ' hours')::INTERVAL
+        GROUP BY source
+    """
+    incomplete_query = """
+        SELECT source, ingestion_time, COUNT(*) AS row_count
+        FROM crypto_market_snapshot
+        WHERE ingestion_time >= NOW() - (%s || ' hours')::INTERVAL
+        GROUP BY source, ingestion_time
+        HAVING COUNT(*) < CASE WHEN source = 'coingecko' THEN 12 ELSE 8 END
+        ORDER BY ingestion_time DESC
+        LIMIT 20
+    """
+
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, (hours,))
+            cols = [d[0] for d in cur.description]
+            by_source_raw = [dict(zip(cols, r)) for r in cur.fetchall()]
+
+            cur.execute(incomplete_query, (hours,))
+            cols2 = [d[0] for d in cur.description]
+            incomplete = [dict(zip(cols2, r)) for r in cur.fetchall()]
+
+    now = datetime.now(timezone.utc)
+    by_source = []
+    for s in by_source_raw:
+        last_ingestion = s["last_ingestion"]
+        minutes_since = (now - last_ingestion).total_seconds() / 60 if last_ingestion else None
+        by_source.append({
+            "source": s["source"],
+            "actual_cycles": s["actual_cycles"],
+            "expected_cycles": expected_cycles,
+            "success_rate_pct": round(min(s["actual_cycles"] / expected_cycles, 1.0) * 100, 2),
+            "last_ingestion": last_ingestion.isoformat() if last_ingestion else None,
+            "minutes_since_last": round(minutes_since, 1) if minutes_since is not None else None,
+            "avg_latency_seconds": round(float(s["avg_latency_seconds"]), 2) if s["avg_latency_seconds"] is not None else None,
+        })
+
+    incomplete_out = [
+        {"source": r["source"], "ingestion_time": r["ingestion_time"].isoformat(), "row_count": r["row_count"]}
+        for r in incomplete
+    ]
+
+    return {"by_source": by_source, "incomplete_cycles": incomplete_out}

@@ -50,3 +50,40 @@ class RankingEntry(BaseModel):
     change_24h_pct: Optional[float] = None
     rolling_volatility: Optional[float] = None
     volume_24h: Optional[float] = None
+
+class MarketHistoryPoint(BaseModel):
+    timestamp: datetime
+    total_market_cap_usd: float
+
+class PegHistoryPoint(BaseModel):
+    symbol: str
+    timestamp: datetime
+    price_usd: float
+    peg_deviation: float
+    seuil_alerte_franchi: bool
+
+
+class FxRatePoint(BaseModel):
+    ingestion_time: datetime
+    usd_xof_rate: float
+
+
+class SourceQuality(BaseModel):
+    source: str
+    actual_cycles: int
+    expected_cycles: int
+    success_rate_pct: float
+    last_ingestion: Optional[datetime] = None
+    minutes_since_last: Optional[float] = None
+    avg_latency_seconds: Optional[float] = None
+
+
+class IncompleteCycle(BaseModel):
+    source: str
+    ingestion_time: datetime
+    row_count: int
+
+
+class PipelineQuality(BaseModel):
+    by_source: list[SourceQuality]
+    incomplete_cycles: list[IncompleteCycle]

@@ -57,3 +57,4 @@ def get_metrics(symbol: str, days: int = 7):
     if metrics is None:
         raise HTTPException(status_code=404, detail=f"Pas assez de données pour calculer les indicateurs de {symbol}")
     return metrics
+
