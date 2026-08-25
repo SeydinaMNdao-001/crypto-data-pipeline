@@ -1,5 +1,5 @@
 # 🌍 Crypto Market Pipeline — MVP Sénégal/UEMOA
-
+[![CI](https://github.com/SeydinaMNdao-001/crypto-data-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/SeydinaMNdao-001/crypto-data-pipeline/actions/workflows/ci.yml)
 Pipeline de données quasi temps réel pour 12 crypto-actifs, avec une
 dimension analytique centrée sur le contexte financier de l'UEMOA :
 affichage en FCFA, suivi du peg des stablecoins dans la durée, et

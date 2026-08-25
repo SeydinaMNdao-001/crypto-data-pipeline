@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  unit-tests:
+    name: Tests unitaires (sans infrastructure)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Installer les dépendances
+        run: pip install -r requirements.txt
+
+      - name: Lancer les tests unitaires
+        run: pytest -m "not integration" -v
+
+  integration-tests:
+    name: Tests d'intégration (PostgreSQL réel)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: crypto_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: crypto_pipeline
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      POSTGRES_USER: crypto_user
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_DB: crypto_pipeline
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      XOF_EUR_FIXED_RATE: "655.957"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Installer les dépendances
+        run: pip install -r requirements.txt
+
+      - name: Appliquer le schéma PostgreSQL
+        run: |
+          PGPASSWORD=test_password psql -h localhost -U crypto_user -d crypto_pipeline -f sql/schema.sql
+
+      - name: Lancer la suite complète (unitaires + intégration)
+        run: pytest -v
