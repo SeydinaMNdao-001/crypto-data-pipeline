@@ -130,6 +130,49 @@ pytest -v                        # suite complète, Docker requis
 
 Détail dans [`docs/TEST_REPORT.md`](docs/TEST_REPORT.md).
 
+Détail dans [`docs/TEST_REPORT.md`](docs/TEST_REPORT.md).
+
+## Incidents rencontrés et résolutions
+
+Ce projet n'a pas été construit sans accroc — ces incidents sont documentés
+volontairement plutôt que masqués, parce qu'ils reflètent le vrai travail
+d'un pipeline de données : anticiper ce qui casse, diagnostiquer
+méthodiquement, corriger, et vérifier.
+
+| Incident | Symptôme | Cause racine | Résolution |
+|---|---|---|---|
+| Paramètre Binance rejeté (400) | `symbols` refusé par l'API | `json.dumps()` insère des espaces ; Binance exige un JSON compact | `separators=(",", ":")` |
+| Prix stablecoin à zéro accepté | DAI affichait `0.0 $` sans erreur | La validation ne vérifiait que la *présence* des champs, pas leur plausibilité ni leur fraîcheur | Contrôle d'âge (`MAX_STALENESS`) et de valeur (`price > 0`) |
+| Perte silencieuse de données Parquet | Le nombre de fichiers n'augmentait pas entre deux cycles | Nom de fichier identique à chaque écriture → écrasement, pas d'ajout | Nom de fichier unique (`uuid4`) par écriture |
+| `.env` corrompu, Airflow refuse de démarrer | `ValueError: could not convert string to float` | Deux variables fusionnées sur la même ligne (fichier sans retour à la ligne final + `>>`) | Fichier corrigé, ligne par variable |
+| DAG invisible dans Airflow, aucune erreur signalée | UI vide, `list-import-errors` vide aussi | Appel `crypto_market_pipeline()` imbriqué *à l'intérieur* de la fonction elle-même — aucun DAG n'était jamais réellement construit | Appel déplacé au niveau module, hors de la fonction |
+| Duplication silencieuse en base | Détecté uniquement en écrivant le test d'idempotence | Aucune contrainte d'unicité — un retry Airflow réinsère le même cycle | Contrainte `UNIQUE` + `ON CONFLICT DO NOTHING` |
+| 3 échecs CI sur un push jugé "propre" | Tests verts en local, rouges sur GitHub Actions | Fichiers jamais commités (`fx_collector.py`...), virgule manquante dans `schema.sql`, test dépendant de données préexistantes | Fichiers ajoutés, SQL corrigé, test rendu autonome |
+
+**Deux incidents valent un détour plus détaillé :**
+
+*Le DAG fantôme.* Airflow ne signalait ni erreur de syntaxe, ni erreur
+d'import — juste un DAG absent de toutes les listes, sans explication.
+La cause : l'appel qui déclenche la construction du DAG
+(`crypto_market_pipeline()`, en dehors de la fonction décorée par `@dag`)
+s'était retrouvé collé *à l'intérieur* de cette même fonction lors d'une
+édition précédente. Un fichier Python parfaitement valide, qui ne
+produisait simplement... rien. Résolu en comparant le fichier réel à sa
+structure attendue plutôt qu'en devinant.
+
+*Le CI comme filet de sécurité, pas comme formalité.* La mise en place de
+GitHub Actions a immédiatement révélé que deux fichiers sources
+fonctionnaient en local et dans Docker (qui lisent le disque directement)
+mais n'avaient **jamais été réellement commités dans Git** — invisible
+tant que rien ne clonait le dépôt à froid. Une virgule manquante dans
+`schema.sql`, sans conséquence en local (la table existait déjà depuis
+des semaines), cassait la création de la base sur un environnement
+neuf. Aucun de ces deux problèmes n'était détectable sans un
+environnement d'exécution complètement indépendant du poste de
+développement — exactement la raison d'être du CI.
+
+## Limites et précautions
+
 ## Limites et précautions
 
 - Les données de marché externes peuvent être incomplètes, retardées ou
