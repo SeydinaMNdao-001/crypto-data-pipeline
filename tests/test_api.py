@@ -35,9 +35,23 @@ def test_health_endpoint_reports_ok_when_db_is_up():
 
 
 @pytest.mark.integration
-def test_latest_endpoint_returns_expected_shape():
-    response = client.get("/crypto/BTC/latest")
-    assert response.status_code == 200
-    body = response.json()
-    assert body["symbol"] == "BTC"
-    assert "price_usd" in body
+def test_latest_endpoint_returns_expected_shape(db_connection):
+    from src.utils.db import insert_snapshot_records
+
+    record = [{
+        "asset_id": "test-latest-shape", "symbol": "BTC", "timestamp": "2026-01-01T00:00:00+00:00",
+        "ingestion_time": "2026-01-01T00:00:01+00:00", "price_usd": 50000.0, "price_xof": None,
+        "volume_24h": 1.0, "market_cap": 1.0, "change_24h": 0.0, "source": "coingecko",
+    }]
+    insert_snapshot_records(record)
+
+    try:
+        response = client.get("/crypto/BTC/latest")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["symbol"] == "BTC"
+        assert "price_usd" in body
+    finally:
+        with db_connection.cursor() as cur:
+            cur.execute("DELETE FROM crypto_market_snapshot WHERE asset_id = 'test-latest-shape'")
+        db_connection.commit()
