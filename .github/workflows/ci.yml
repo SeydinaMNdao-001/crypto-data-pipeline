@@ -66,7 +66,6 @@ jobs:
 
       - name: Appliquer le schéma PostgreSQL
         run: |
-          PGPASSWORD=test_password psql -h localhost -U crypto_user -d crypto_pipeline -f sql/schema.sql
-
+          PGPASSWORD=test_password psql -h localhost -U crypto_user -d crypto_pipeline -v ON_ERROR_STOP=1 -f sql/schema.sql
       - name: Lancer la suite complète (unitaires + intégration)
         run: pytest -v
