@@ -100,7 +100,110 @@ docker exec -it $(docker ps -qf "name=airflow-scheduler") \
   airflow dags unpause crypto_market_pipeline
 ```
 
+## Guide de déploiement détaillé
+
+Cette section s'adresse à quiconque clone ce dépôt pour la première fois,
+sans accompagnement.
+
+### Prérequis
+
+- Docker Desktop (macOS, Windows ou Linux) — au moins 4 Go de RAM et
+  10 Go d'espace disque alloués à Docker
+- Python 3.11+
+- Git
+- Une clé API CoinGecko Demo (gratuite, voir ci-dessous)
+
+### 1. Cloner et configurer l'environnement
+
+```bash
+git clone <url-du-repo>
+cd crypto-data-pipeline
+cp .env.example .env
+```
+
+Édite `.env` et renseigne :
+
+| Variable | Description | Où l'obtenir |
+|---|---|---|
+| `COINGECKO_API_KEY` | Clé Demo CoinGecko | [coingecko.com/en/api/pricing](https://www.coingecko.com/en/api/pricing) → *Create Free Account* → *Developer Dashboard* → *API Keys* |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Identifiants de la base applicative | À choisir librement |
+| `POSTGRES_HOST` / `POSTGRES_PORT` | Connexion locale | Laisser `localhost` / `5432` |
+| `XOF_EUR_FIXED_RATE` | Parité fixe EUR/XOF | `655.957` (valeur officielle, ne pas modifier) |
+| `AIRFLOW_UID` | Utilisateur système Airflow | `50000` (valeur recommandée) |
+
+⚠️ Une variable par ligne, sans exception — un fichier `.env` sans retour
+à la ligne final, complété ensuite via `>>`, peut fusionner deux variables
+sur une même ligne et faire planter Airflow au démarrage (incident
+documenté plus bas).
+
+### 2. Environnement Python local (pour les tests, hors Docker)
+
+```bash
+python3.11 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 3. Construire et démarrer toute la stack
+
+```bash
+docker compose build
+docker compose up airflow-init
+docker compose up -d
+```
+
+Patiente 1 à 2 minutes, puis vérifie que tout est sain :
+```bash
+docker ps --format "table {{.Names}}\t{{.Status}}"
+```
+Tous les conteneurs doivent afficher `healthy`.
+
+### 4. Activer le pipeline
+
+Le DAG démarre **en pause** par défaut — comportement normal d'Airflow,
+pas une erreur :
+```bash
+docker exec -it $(docker ps -qf "name=airflow-scheduler") \
+  airflow dags unpause crypto_market_pipeline
+```
+
+### 5. Vérifier
+
+| Interface | URL | Identifiants |
+|---|---|---|
+| Dashboard | http://localhost:8501 | — |
+| API (docs interactives) | http://localhost:8000/docs | — |
+| Airflow | http://localhost:8080 | airflow / airflow |
+
+```bash
+curl http://localhost:8000/health
+```
+Doit répondre `{"status":"ok"}`. Après 2-3 minutes de collecte :
+```bash
+docker exec -it $(docker ps -qf "name=postgres-app") \
+  psql -U crypto_user -d crypto_pipeline -c "SELECT COUNT(*) FROM crypto_market_snapshot;"
+```
+Le compteur doit être non nul et croissant d'un appel à l'autre.
+
+### Dépannage courant
+
+| Symptôme | Cause probable | Solution |
+|---|---|---|
+| DAG absent de l'UI, aucune erreur listée | Fichier DAG mal structuré | `docker exec -it <scheduler> airflow dags list-import-errors`, puis relire la syntaxe |
+| `ValueError` au démarrage d'Airflow | `.env` corrompu (lignes fusionnées) | Vérifier une variable par ligne dans `.env` |
+| Dashboard sans données | API non démarrée, ou base encore vide | `docker ps` pour l'état des conteneurs ; patienter 1-2 cycles |
+| Modification d'un collecteur externe renvoie une erreur 400 | Paramètres mal formatés (espaces superflus) | Vérifier le format exact attendu par l'API tierce |
+
+### Réinitialiser complètement
+
+```bash
+docker compose down -v   # supprime aussi les données (Postgres + métadonnées Airflow)
+docker compose up airflow-init
+docker compose up -d
+```
+
 ## Utilisation
+
 
 | Interface | URL | Identifiants |
 |---|---|---|
