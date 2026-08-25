@@ -36,6 +36,7 @@ INSERT_SNAPSHOT_SQL = """
         (asset_id, symbol, timestamp, ingestion_time, price_usd, price_xof,
          volume_24h, market_cap, change_24h, source)
     VALUES %s
+    ON CONFLICT (asset_id, timestamp, source) DO NOTHING
 """
 
 
