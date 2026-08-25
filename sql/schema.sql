@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS crypto_market_snapshot (
     volume_24h      NUMERIC(24, 4),
     market_cap      NUMERIC(24, 2),
     change_24h      NUMERIC(10, 4),
-    source          VARCHAR(20)  NOT NULL
+    source          VARCHAR(20)  NOT NULL,
     CONSTRAINT uq_snapshot_asset_timestamp_source UNIQUE (asset_id, timestamp, source)
 );
 
