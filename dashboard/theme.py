@@ -44,8 +44,29 @@ def apply_custom_styles():
             background-color: {COLORS['surface']};
             border-right: 1px solid rgba(201, 162, 75, 0.1);
         }}
-        [data-testid="stDataFrame"] {{
+                [data-testid="stDataFrame"] {{
             font-family: 'IBM Plex Mono', monospace;
+        }}
+        [data-testid="stSidebarNavItems"] {{
+            padding-top: 0.3rem;
+        }}
+        [data-testid="stSidebarNavItems"] li {{
+            margin-bottom: 0.15rem;
+        }}
+        [data-testid="stSidebarNavItems"] a {{
+            border-radius: 0.4rem;
+            transition: background-color 0.15s ease;
+        }}
+        [data-testid="stSidebarNavItems"] a:hover {{
+            background-color: rgba(201, 162, 75, 0.10);
+        }}
+        [data-testid="stSidebarNavItems"] a[aria-current="page"] {{
+            background-color: rgba(201, 162, 75, 0.16);
+            border-left: 2px solid {COLORS['accent_gold']};
+        }}
+        [data-testid="stSidebarNavItems"] span {{
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 0.88rem;
         }}
         </style>
     """, unsafe_allow_html=True)
