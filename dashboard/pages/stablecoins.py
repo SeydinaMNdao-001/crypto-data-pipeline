@@ -41,7 +41,7 @@ for i, symbol in enumerate(selected_stablecoins):
     with cols[i]:
         st.metric(symbol, f"{latest['peg_deviation']:+.4f}%")
         fig = build_peg_gauge_figure(latest["peg_deviation"], PEG_ALERT_THRESHOLD_PCT, COLORS)
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False}, key=f"peg_gauge_{symbol}")
 
 st.divider()
 st.subheader("Historique des écarts (24h)")
@@ -68,7 +68,7 @@ fig_hist.update_layout(
     margin=dict(l=10, r=10, t=20, b=10), height=380,
     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
 )
-st.plotly_chart(fig_hist, use_container_width=True)
+st.plotly_chart(fig_hist, use_container_width=True, key="peg_deviation_history")
 
 st.divider()
 st.subheader("Épisodes de franchissement de seuil")
